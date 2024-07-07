@@ -1,6 +1,7 @@
 package openfga
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/openfga/language/pkg/go/transformer"
 )
 
 func (e *MissingEnv) Error() string {
@@ -149,4 +152,51 @@ func GetModel(storeID string, modelID string) ModelResponse {
 	}
 
 	return model
+}
+
+func transform(model string) (string, error) {
+	return transformer.TransformDSLToJSON(model)
+}
+
+func CreateModel(storeID string, data string) CreateModelResponse {
+	c := getClient()
+	output := CreateModelResponse{}
+	url := fmt.Sprintf("%s/stores/%s/authorization-models", c.Url, storeID)
+	jsonString, err := transform(data)
+	if err != nil {
+		log.Printf("Error: transform failed from dsl to json: %w\n", err)
+		return output
+	}
+	log.Printf("jsonString: +%v\n", jsonString)
+
+	jsonData, err := json.Marshal([]byte(jsonString))
+	if err != nil {
+		log.Printf("Error: json.Marshal failed: %w\n", err)
+		return output
+	}
+	log.Printf("jsonData: +%s\n", string(jsonData))
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Printf("Error: http Post failed for %s: %s\n", url, err)
+		return output
+	}
+	log.Printf("response: +%v\n", resp)
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error: ReadAll failed for %s: %s\n", url, err)
+		return output
+	}
+	log.Printf("response.body: +%v\n", body)
+
+	if err := json.Unmarshal(body, &output); err != nil {
+		fmt.Println("Error unmarshalling response:", err)
+		return output
+	}
+	log.Printf("output: +%v\n", output)
+
+	return output
 }

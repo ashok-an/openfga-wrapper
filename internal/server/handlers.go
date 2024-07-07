@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -58,4 +59,23 @@ func (s *Server) getModel(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, model)
+}
+
+func (s *Server) CreateModel(c *gin.Context) {
+	storeID := c.Param("storeID")
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+		return
+	}
+
+	output := openfga.CreateModel(storeID, string(body))
+	fmt.Println(output)
+	if output.ModelID == "" {
+		resp := make(map[string]string)
+		resp["message"] = fmt.Sprintf("model creation failed for storeID:%s", storeID)
+		c.JSON(http.StatusUnprocessableEntity, resp)
+		return
+	}
+	c.JSON(http.StatusOK, output)
 }

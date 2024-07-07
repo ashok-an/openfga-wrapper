@@ -46,3 +46,7 @@ type TypeDefinition struct {
 	Relations interface{} `json:"relations,omitempty"`
 	Metadata  interface{} `json:"metadata,omitempty"`
 }
+
+type CreateModelResponse struct {
+	ModelID string `json:"authorization_model_id"`
+}

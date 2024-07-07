@@ -17,6 +17,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.GET("/stores/:storeID", s.getStore)
 	r.GET("/stores/:storeID/models", s.getModels)
 	r.GET("/stores/:storeID/models/:modelID", s.getModel)
-
+	r.POST("/stores/:storeID/models", s.CreateModel)
 	return r
 }
